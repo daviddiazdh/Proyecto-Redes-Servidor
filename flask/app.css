@@ -1,0 +1,29 @@
+* {
+    box-sizing: border-box;
+}
+
+.main-box{
+    width: 100%;
+    display: flex;
+
+}
+
+.navigator{
+    position: sticky;
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    height: 100vh;
+    border-right: solid;
+    border-color: black;
+}
+
+.navigator-element{
+    display: flex;
+    justify-content: left;
+}
+
+.navigator-element svg{
+    width: 25px;
+    height: 25px;
+}
