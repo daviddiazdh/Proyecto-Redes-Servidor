@@ -22,8 +22,6 @@ main {
 }
 
 .side-bar-nav{
-    /* display: flex;
-    flex-direction: column; */
     background-color: var(--side-bar-nav-color);
     color: var(--side-bar-nav-color-font-and-icon);
     font-family: var(--main-font);
@@ -31,6 +29,8 @@ main {
     height: 100vh;
     width: 275px;
     position: fixed;
+    top: 0;
+    left: 0;
 }
 
 .side-bar-nav .title {
@@ -38,12 +38,16 @@ main {
     flex-direction: row;
     align-items: center;
     gap: 20px;
+    text-decoration: none;
+    color: var(--side-bar-nav-color-font-and-icon);
 }
 
 .side-bar-nav .option-side-bar {
     display: flex;
     align-items: center;
     gap:15px;
+    text-decoration: none;
+    color: var(--side-bar-nav-color-font-and-icon);
 }
 
 .storage-title-svg {
@@ -65,7 +69,6 @@ main {
 }
 
 .storage-bar{
-    width: 75%;
     height: 7px;
     background-color: gray;
 }
