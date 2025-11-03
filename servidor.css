@@ -113,8 +113,8 @@ main {
     border-radius: 5px;
     left: 5px;
     text-align: center;
-    line-height: 1500px;
     border: none;
+    cursor: pointer;
 }
 
 .input_box_title{
@@ -162,7 +162,7 @@ main {
     font-family: monospace;
 }
 
-.dir-option, .file-option{
+.dir-option{
     display: flex;
     align-items: center;
     gap: 10px;
@@ -170,6 +170,8 @@ main {
     padding: 5px;
     border: solid 1px;
     border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
 }
 
 .dir-option svg {
