@@ -1,0 +1,71 @@
+:root{
+    --side-bar-nav-color: #09091d;
+    --side-bar-nav-color-font-and-icon: #FFFFFF;
+    --folder-icon-color: #737373;
+    --side-bar-nav-storage-bar-color: #737373;
+    --main-font: monospace;
+    --main-font-color: #000000   
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+}
+
+main {
+    font-family: monospace;
+}
+
+.side-bar-nav{
+    /* display: flex;
+    flex-direction: column; */
+    background-color: var(--side-bar-nav-color);
+    color: var(--side-bar-nav-color-font-and-icon);
+    font-family: var(--main-font);
+    padding: 0px 20px;
+    height: 100vh;
+    width: 275px;
+    position: fixed;
+}
+
+.side-bar-nav .title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+}
+
+.side-bar-nav .option-side-bar {
+    display: flex;
+    align-items: center;
+    gap:15px;
+}
+
+.storage-title-svg {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.storage-box{
+    width: 100%;
+}
+
+.storage-bar-box{
+    width: 100%;
+    background-color: white;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.storage-bar{
+    width: 75%;
+    height: 7px;
+    background-color: gray;
+}
