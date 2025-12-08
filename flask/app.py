@@ -1,14 +1,18 @@
-from flask import Flask, request, render_template_string, redirect, url_for, send_from_directory
+from flask import Flask, request, render_template_string, redirect, url_for, send_from_directory, jsonify
 import shutil
 import os
 import subprocess
+import psutil
+import threading
+import time
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mkv'}
 
 HTML = '''
 <!DOCTYPE html>
@@ -180,7 +184,7 @@ HTML = '''
                                 </a>
                                 <p class="media_item_title">{{ file }}</p>
 
-                            {% elif file.endswith('.mp4') %}
+                            {% elif file.endswith(('.mp4', '.mkv')) %}
                                 <div class="thumbnail-container" style="position: relative;">
                                     
                                     <form action="{{ url_for('delete_file', file_path=path + '/' + file if path else file) }}" method="post"
@@ -206,11 +210,50 @@ HTML = '''
                     {% endfor %}
                 </div>
             </div>
+            <div>
+                <p>CPU: <span id="cpu"></span>%</p>
+                <p>RAM: <span id="ram"></span>%</p>
+                <p>Load Average: <span id="load"></span></p>
+            </div>
+
+            <script>
+                async function updateStatus() {
+                    const res = await fetch("/status");
+                    const data = await res.json();
+
+                    document.getElementById("cpu").textContent = data.cpu;
+                    document.getElementById("ram").textContent = data.ram;
+                    document.getElementById("load").textContent = data.load.join(", ");
+                }
+
+                setInterval(updateStatus, 4000); // Actualiza cada 6s
+                updateStatus();
+            </script>
         </div>
     </div>
 </body>
 </html>
 '''
+
+@app.get("/metrics")
+def metrics():
+    return {
+        "cpu": psutil.cpu_percent(),
+        "mem": psutil.virtual_memory().percent,
+        "disk": psutil.disk_usage("/").percent,
+        "net_sent": psutil.net_io_counters().bytes_sent,
+        "net_recv": psutil.net_io_counters().bytes_recv
+    }
+
+@app.route('/metrics-raw')
+def metrics_raw():
+    try:
+        with open('metrics.csv', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    except FileNotFoundError:
+        return "metrics.csv not found", 404
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -293,9 +336,9 @@ def generate_thumbnail(video_path, thumbnail_path):
         subprocess.run([
             "ffmpeg",
             "-i", video_path,
-            "-ss", "00:00:01.000",  # 1 segundo (ajustable)
+            "-ss", "00:00:01.000",
             "-vframes", "1",
-            "-q:v", "2",  # calidad
+            "-q:v", "2",
             thumbnail_path
         ], check=True)
     except subprocess.CalledProcessError:
@@ -313,6 +356,25 @@ def delete_file(file_path):
         except Exception:
             pass
     return redirect(request.referrer or url_for('upload_file'))
+
+@app.get("/status")
+def status():
+    return jsonify({
+        "cpu": psutil.cpu_percent(),
+        "ram": psutil.virtual_memory().percent,
+        "load": psutil.getloadavg()
+    })
+
+def burn_cpu(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        pass  # bucle vacío
+
+@app.route("/stress/<int:seconds>")
+def stress(seconds):
+    t = threading.Thread(target=burn_cpu, args=(seconds,))
+    t.start()
+    return jsonify({"status": "running", "seconds": seconds})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
