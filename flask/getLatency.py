@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import urllib.request
 
-url = "http://192.168.101.100:5000/metrics-raw"   # debe retornar CSV con: timestamp;cpu;mem
+url = "http://192.168.101.100:5000/latency-raw"
 
 def update(frame):
     # Descargar CSV en memoria
@@ -23,19 +23,16 @@ def update(frame):
     if data.shape == ():
         data = np.array([data])
 
-    cpu = data["cpu"]
-    mem = data["mem"]
-
+    latency = data["response_time"]
     timestamps = data["timestamp"]
     fechas = timestamps.astype("datetime64[s]")
 
     plt.cla()
-    plt.plot(fechas, cpu, label="CPU (%)")
-    plt.plot(fechas, mem, label="Mem (%)")
+    plt.plot(fechas, latency, label="s")
 
-    plt.title("Monitoreo del servidor en tiempo real")
-    plt.xlabel("Tiempo")
-    plt.ylabel("Valores (%)")
+    plt.title("Monitoreo de latencia del servidor")
+    plt.xlabel("Hora")
+    plt.ylabel("Tiempo de respuesta")
     plt.legend()
     plt.tight_layout()
 

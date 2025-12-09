@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import urllib.request
 
-url = "http://192.168.101.100:5000/metrics-raw"   # debe retornar CSV con: timestamp;cpu;mem
+url = "http://servidor-diaz.local:5000/disk-raw"  # CSV: timestamp;disk;read_bps;write_bps
 
 def update(frame):
     # Descargar CSV en memoria
@@ -16,26 +16,28 @@ def update(frame):
         delimiter=";",
         names=True,
         dtype=None,
-        encoding="utf-8"
+        encoding="utf-8",
+        invalid_raise=False  # ignora líneas con errores, como header
     )
 
     # Normalizar si solo hay 1 fila
     if data.shape == ():
         data = np.array([data])
 
-    cpu = data["cpu"]
-    mem = data["mem"]
-
+    disk = data["disk"]
+    read_bps = data["read_bps"]
+    write_bps = data["write_bps"]
     timestamps = data["timestamp"]
     fechas = timestamps.astype("datetime64[s]")
 
     plt.cla()
-    plt.plot(fechas, cpu, label="CPU (%)")
-    plt.plot(fechas, mem, label="Mem (%)")
+    plt.plot(fechas, read_bps, label="Disk Read (bytes/s)")
+    plt.plot(fechas, write_bps, label="Disk Write (bytes/s)")
+    plt.plot(fechas, disk, label="Disk Used (%)")
 
-    plt.title("Monitoreo del servidor en tiempo real")
+    plt.title("Monitoreo de Disco en tiempo real")
     plt.xlabel("Tiempo")
-    plt.ylabel("Valores (%)")
+    plt.ylabel("Bytes / s / Uso")
     plt.legend()
     plt.tight_layout()
 

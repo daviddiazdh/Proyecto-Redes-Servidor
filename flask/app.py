@@ -5,6 +5,18 @@ import subprocess
 import psutil
 import threading
 import time
+import logging
+
+# Crear carpeta de logs si no existe
+os.makedirs('logs', exist_ok=True)
+
+# Configuración básica de logging
+logging.basicConfig(
+    filename='logs/server.log',  # archivo donde se guardarán los logs
+    level=logging.INFO,           # nivel mínimo de log
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
@@ -235,24 +247,52 @@ HTML = '''
 </html>
 '''
 
-@app.get("/metrics")
-def metrics():
-    return {
-        "cpu": psutil.cpu_percent(),
-        "mem": psutil.virtual_memory().percent,
-        "disk": psutil.disk_usage("/").percent,
-        "net_sent": psutil.net_io_counters().bytes_sent,
-        "net_recv": psutil.net_io_counters().bytes_recv
-    }
+def burn_cpu(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        pass  # bucle vacío
+
+@app.route("/stress/<int:seconds>")
+def stress(seconds):
+    t = threading.Thread(target=burn_cpu, args=(seconds,))
+    t.start()
+    return jsonify({"status": "running", "seconds": seconds})
+
+@app.route('/disk-raw')
+def disk_raw():
+    try:
+        with open('../metrics_disk.csv', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    except FileNotFoundError:
+        return "metrics_disk.csv not found", 404
 
 @app.route('/metrics-raw')
 def metrics_raw():
     try:
-        with open('metrics.csv', 'r', encoding='utf-8') as f:
+        with open('../metrics.csv', 'r', encoding='utf-8') as f:
             content = f.read()
         return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     except FileNotFoundError:
         return "metrics.csv not found", 404
+
+@app.route('/latency-raw')
+def latency_raw():
+    try:
+        with open('../latency.csv', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    except FileNotFoundError:
+        return "latency.csv not found", 404
+
+@app.route('/tx-rx-raw')
+def tx_rx_raw():
+    try:
+        with open('../tx_rx.csv', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    except FileNotFoundError:
+        return "tx_rx.csv not found", 404
 
 
 def allowed_file(filename):
@@ -276,6 +316,7 @@ def create_folder(path):
     if foldername:
         folder_path = os.path.join(current_path, foldername)
         os.makedirs(folder_path, exist_ok=True)
+        logging.info(f"Carpeta creada: {folder_path}")
     return redirect(url_for('upload_file', path=path))
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
@@ -291,6 +332,7 @@ def upload_file(path):
                 filename = file.filename
                 filepath = os.path.join(current_path, filename)
                 file.save(filepath)
+                logging.info(f"Archivo subido: {filepath}")
 
                 # Si es video, generar miniatura
                 if filename.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')):
@@ -303,8 +345,9 @@ def upload_file(path):
                             '-vframes', '1',
                             thumbnail_path
                         ], check=True)
+                        logging.info(f"Miniatura generada: {thumbnail_path}")
                     except subprocess.CalledProcessError as e:
-                        print(f'Error generando miniatura: {e}')
+                        logging.error(f'Error generando miniatura de {filepath}: {e}')
         return redirect(request.url)
 
     items = os.listdir(current_path)
@@ -351,10 +394,12 @@ def delete_file(file_path):
         try:
             if os.path.isfile(full_path):
                 os.remove(full_path)
+                logging.info(f"Archivo eliminado: {full_path}")
             elif os.path.isdir(full_path):
                 shutil.rmtree(full_path)
-        except Exception:
-            pass
+                logging.info(f"Carpeta eliminada: {full_path}")
+        except Exception as e:
+            logging.error(f"Error eliminando {full_path}: {e}")
     return redirect(request.referrer or url_for('upload_file'))
 
 @app.get("/status")
@@ -365,16 +410,7 @@ def status():
         "load": psutil.getloadavg()
     })
 
-def burn_cpu(seconds):
-    end = time.time() + seconds
-    while time.time() < end:
-        pass  # bucle vacío
 
-@app.route("/stress/<int:seconds>")
-def stress(seconds):
-    t = threading.Thread(target=burn_cpu, args=(seconds,))
-    t.start()
-    return jsonify({"status": "running", "seconds": seconds})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
